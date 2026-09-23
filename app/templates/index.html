@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Информационная система музейного архива">
+    <title>Музейный архив</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <script defer src="{{ url_for('static', filename='js/app.js') }}"></script>
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <a class="brand" href="#" aria-label="Музейный архив">
+          <span class="brand-mark" aria-hidden="true">М</span>
+          <span>
+            <strong>Музейный архив</strong>
+            <small>Информационная система</small>
+          </span>
+        </a>
+
+        <nav class="main-nav" aria-label="Разделы архива">
+          <button class="nav-item active" data-resource="exhibits">
+            <span class="nav-icon" aria-hidden="true">◇</span>
+            Экспонаты
+          </button>
+          <button class="nav-item" data-resource="collections">
+            <span class="nav-icon" aria-hidden="true">▤</span>
+            Коллекции
+          </button>
+          <button class="nav-item" data-resource="halls">
+            <span class="nav-icon" aria-hidden="true">⌂</span>
+            Залы
+          </button>
+          <button class="nav-item" data-resource="employees">
+            <span class="nav-icon" aria-hidden="true">○</span>
+            Сотрудники
+          </button>
+          <button class="nav-item" data-resource="events">
+            <span class="nav-icon" aria-hidden="true">□</span>
+            События
+          </button>
+        </nav>
+
+        <div class="sidebar-note">
+          <span class="status-dot" aria-hidden="true"></span>
+          <div>
+            <strong>Система доступна</strong>
+            <small>SQLite подключена</small>
+          </div>
+        </div>
+      </aside>
+
+      <main class="content">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">Цифровой фонд</p>
+            <h1 id="page-title">Экспонаты</h1>
+            <p id="page-description" class="page-description">
+              Учёт музейных предметов и мест их хранения
+            </p>
+          </div>
+          <div class="topbar-badge">
+            <span>МА</span>
+            <div>
+              <strong>Администратор</strong>
+              <small>полный доступ</small>
+            </div>
+          </div>
+        </header>
+
+        <section class="stats-grid" aria-label="Статистика музея">
+          <article class="stat-card accent">
+            <span>Экспонаты</span>
+            <strong id="stat-exhibits">—</strong>
+            <small>единиц хранения</small>
+          </article>
+          <article class="stat-card">
+            <span>Коллекции</span>
+            <strong id="stat-collections">—</strong>
+            <small>тематических фондов</small>
+          </article>
+          <article class="stat-card">
+            <span>Залы</span>
+            <strong id="stat-halls">—</strong>
+            <small>экспозиционных пространств</small>
+          </article>
+          <article class="stat-card">
+            <span>События</span>
+            <strong id="stat-events">—</strong>
+            <small>в календаре</small>
+          </article>
+        </section>
+
+        <section class="records-panel">
+          <div class="panel-toolbar">
+            <label class="search-box">
+              <span aria-hidden="true">⌕</span>
+              <input id="search-input" type="search" placeholder="Поиск по записям">
+            </label>
+            <button id="add-button" class="primary-button" type="button">
+              <span aria-hidden="true">+</span>
+              <span id="add-button-label">Добавить экспонат</span>
+            </button>
+          </div>
+
+          <div class="table-wrap">
+            <table>
+              <thead id="table-head"></thead>
+              <tbody id="table-body"></tbody>
+            </table>
+          </div>
+
+          <div id="empty-state" class="empty-state" hidden>
+            <span aria-hidden="true">◇</span>
+            <h2>Записей пока нет</h2>
+            <p>Добавьте первую запись в этот раздел.</p>
+          </div>
+
+          <footer class="panel-footer">
+            <span id="record-count">Загрузка данных…</span>
+            <span>Музейный архив · 2026</span>
+          </footer>
+        </section>
+      </main>
+    </div>
+
+    <dialog id="record-dialog">
+      <form id="record-form" method="dialog">
+        <div class="dialog-header">
+          <div>
+            <p class="eyebrow">Запись архива</p>
+            <h2 id="dialog-title">Новая запись</h2>
+          </div>
+          <button id="close-dialog" class="icon-button" type="button" aria-label="Закрыть">×</button>
+        </div>
+        <div id="form-fields" class="form-grid"></div>
+        <div class="dialog-actions">
+          <button id="cancel-button" class="secondary-button" type="button">Отмена</button>
+          <button class="primary-button" type="submit">Сохранить</button>
+        </div>
+      </form>
+    </dialog>
+
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  </body>
+</html>
