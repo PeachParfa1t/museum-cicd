@@ -23,7 +23,7 @@ services:
       start_period: 10s
 
   nginx:
-    image: nginx:stable-alpine
+    image: public.ecr.aws/docker/library/nginx:stable-alpine
     ports:
       - "127.0.0.1:8081:80"
     volumes:
