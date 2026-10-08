@@ -1,0 +1,44 @@
+name: museum-archive
+
+services:
+  app:
+    image: museum-archive:${IMAGE_TAG:?Set IMAGE_TAG before deployment}
+    user: "${HOST_UID:?Set HOST_UID}:${HOST_GID:?Set HOST_GID}"
+    environment:
+      DATABASE_PATH: /data/museum.db
+    volumes:
+      - type: bind
+        source: ${DEPLOY_ROOT:?Set DEPLOY_ROOT}/shared
+        target: /data
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3)"]
+      interval: 5s
+      timeout: 4s
+      retries: 12
+      start_period: 10s
+
+  nginx:
+    image: nginx:stable-alpine
+    ports:
+      - "127.0.0.1:8081:80"
+    volumes:
+      - type: bind
+        source: ./nginx/default.conf
+        target: /etc/nginx/conf.d/default.conf
+        read_only: true
+    depends_on:
+      app:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1/health || exit 1"]
+      interval: 5s
+      timeout: 4s
+      retries: 12
+      start_period: 5s
+

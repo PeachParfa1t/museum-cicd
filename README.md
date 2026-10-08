@@ -2,7 +2,7 @@
 
 Клиент-серверная информационная система для лабораторной работы по CI/CD. Сервер написан на Flask, данные хранятся в SQLite, интерфейс создан на обычных HTML, CSS и JavaScript.
 
-Проект не использует Docker. Jenkins разворачивает production-версию в отдельном каталоге `~/museum-deploy` и запускает её через Waitress.
+Первая лабораторная разворачивала сайт без Docker через Waitress. Во второй лабораторной Jenkins собирает Docker-образ приложения, а nginx направляет запросы в контейнер Flask/Waitress. База остаётся в `~/museum-deploy/shared/museum.db`.
 
 ## Что реализовано
 
@@ -32,9 +32,13 @@ museum_cicd/
 │   └── seed.sql           # демонстрационные данные
 ├── scripts/
 │   ├── deploy.sh          # развёртывание production-версии
+│   ├── deploy-container.sh # развёртывание второй лабораторной
 │   └── stop.sh            # остановка production-сервера
 ├── tests/                 # автотесты pytest
 ├── Jenkinsfile            # CI/CD Pipeline as Code
+├── Dockerfile
+├── compose.yaml
+├── nginx/default.conf     # конфигурация обратного прокси
 ├── requirements.txt
 ├── run.py                 # локальный запуск
 └── wsgi.py                # production-точка входа
@@ -98,7 +102,11 @@ curl http://127.0.0.1:8081/health
 scripts/stop.sh
 ```
 
-## Логика CI/CD
+## Production-запуск в контейнерах для лабораторной работы 2
+
+Инструкция по переходу, проверке nginx, демонстрации веток и подготовке отчёта находится в [LAB2_GUIDE.md](LAB2_GUIDE.md). Потребуется Docker Desktop с Docker Compose. После деплоя сайт доступен по прежнему адресу http://127.0.0.1:8081, но порт обслуживает nginx.
+
+## Логика CI/CD лабораторной работы 2
 
 Для всех веток Jenkins выполняет:
 
@@ -110,10 +118,11 @@ scripts/stop.sh
 
 Только для `main` дополнительно выполняются:
 
-1. Развёртывание через `scripts/deploy.sh`.
-2. Проверка адреса `/health`.
+1. Сборку Docker-образа Flask-приложения.
+2. Развёртывание двух контейнеров через `scripts/deploy-container.sh` и Docker Compose.
+3. Проверку адреса `/health` через nginx.
 
-Рабочая версия находится не в папке разработчика и не в Jenkins Workspace, а в `~/museum-deploy/current`. Поэтому локальные изменения не влияют на сайт. Он обновляется только после commit, push в GitHub, успешных тестов и выполнения стадии Deploy для ветки `main`.
+Рабочая версия приложения находится в Docker-образе, а конфигурация контейнеров — в `~/museum-deploy/container`. Локальные изменения в редакторе не меняют сайт. Он обновляется после commit, push в GitHub, успешных тестов и выполнения стадии Deploy для ветки `main`.
 
 ## API
 

@@ -4,7 +4,6 @@ pipeline {
     environment {
         PATH = "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
         DEPLOY_URL = "http://127.0.0.1:8081"
-        APP_PORT = "8081"
     }
 
     options {
@@ -34,6 +33,8 @@ pipeline {
                 sh '''
                     git --version
                     python3 --version
+                    docker --version
+                    docker compose version
                 '''
             }
         }
@@ -70,12 +71,26 @@ pipeline {
                     mkdir -p build
                     tar --exclude="*/__pycache__" --exclude="*.pyc" \
                         -czf "build/museum-archive-${BUILD_NUMBER}.tar.gz" \
-                        app scripts requirements.txt run.py wsgi.py \
-                        pyproject.toml README.md
+                        app scripts nginx requirements.txt run.py wsgi.py \
+                        pyproject.toml README.md LAB2_GUIDE.md \
+                        Dockerfile compose.yaml .dockerignore
                 '''
 
                 archiveArtifacts artifacts: "build/*.tar.gz",
                                  fingerprint: true
+            }
+        }
+
+        stage("Build container") {
+            when {
+                branch "main"
+            }
+
+            steps {
+                sh '''
+                    IMAGE_TAG="$(git rev-parse --short=12 HEAD)"
+                    docker build -t "museum-archive:$IMAGE_TAG" .
+                '''
             }
         }
 
@@ -86,8 +101,8 @@ pipeline {
 
             steps {
                 sh '''
-                    chmod +x scripts/deploy.sh
-                    scripts/deploy.sh
+                    export IMAGE_TAG="$(git rev-parse --short=12 HEAD)"
+                    bash scripts/deploy-container.sh
                 '''
             }
         }
@@ -111,7 +126,11 @@ pipeline {
                     done
 
                     echo "Сайт не запустился"
-                    tail -n 100 "$HOME/museum-deploy/museum.log" || true
+                    export DEPLOY_ROOT="$HOME/museum-deploy"
+                    export IMAGE_TAG="$(git rev-parse --short=12 HEAD)"
+                    export HOST_UID="$(id -u)"
+                    export HOST_GID="$(id -g)"
+                    docker compose -f "$HOME/museum-deploy/container/compose.yaml" logs --tail=100 || true
                     exit 1
                 '''
             }
