@@ -11,7 +11,6 @@ COMPOSE_DIR="$DEPLOY_ROOT/container"
 
 export DEPLOY_ROOT IMAGE_TAG HOST_UID HOST_GID
 
-docker image inspect "museum-archive:$IMAGE_TAG" >/dev/null
 mkdir -p "$COMPOSE_DIR/nginx" "$DEPLOY_ROOT/shared"
 cp "$SOURCE_DIR/compose.yaml" "$COMPOSE_DIR/compose.yaml"
 cp "$SOURCE_DIR/nginx/default.conf" "$COMPOSE_DIR/nginx/default.conf"
@@ -28,5 +27,6 @@ if [[ -f "$DEPLOY_ROOT/museum.pid" ]]; then
     done
 fi
 
+docker compose -f "$COMPOSE_DIR/compose.yaml" pull app
 docker compose -f "$COMPOSE_DIR/compose.yaml" up -d --no-build --remove-orphans
 docker compose -f "$COMPOSE_DIR/compose.yaml" ps

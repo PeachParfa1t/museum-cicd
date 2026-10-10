@@ -1,0 +1,12 @@
+name: museum-local-registry
+
+services:
+  registry:
+    image: public.ecr.aws/docker/library/registry:2
+    ports:
+      - "127.0.0.1:5001:5000"
+    volumes:
+      - type: bind
+        source: ${DEPLOY_ROOT:?Set DEPLOY_ROOT}/registry
+        target: /var/lib/registry
+    restart: unless-stopped

@@ -2,7 +2,7 @@ name: museum-archive
 
 services:
   app:
-    image: museum-archive:${IMAGE_TAG:?Set IMAGE_TAG before deployment}
+    image: localhost:5001/museum-archive:${IMAGE_TAG:?Set IMAGE_TAG before deployment}
     user: "${HOST_UID:?Set HOST_UID}:${HOST_GID:?Set HOST_GID}"
     environment:
       DATABASE_PATH: /data/museum.db

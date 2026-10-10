@@ -64,32 +64,40 @@ pipeline {
             }
         }
 
-        stage("Build package") {
+        stage("Validate sources") {
             steps {
                 sh '''
                     .venv/bin/python -m compileall -q app run.py wsgi.py
-                    mkdir -p build
-                    tar --exclude="*/__pycache__" --exclude="*.pyc" \
-                        -czf "build/museum-archive-${BUILD_NUMBER}.tar.gz" \
-                        app scripts nginx requirements.txt run.py wsgi.py \
-                        pyproject.toml README.md LAB2_GUIDE.md \
-                        Dockerfile compose.yaml .dockerignore
                 '''
+            }
+        }
 
-                archiveArtifacts artifacts: "build/*.tar.gz",
-                                 fingerprint: true
+        stage("Check registry") {
+            steps {
+                sh '''
+                    curl --fail --silent http://127.0.0.1:5001/v2/ > /dev/null
+                '''
             }
         }
 
         stage("Build container") {
-            when {
-                branch "main"
+            steps {
+                script {
+                    def safeBranch = env.BRANCH_NAME.replaceAll('[^A-Za-z0-9_.-]', '-')
+                    def commitId = sh(script: 'git rev-parse --short=12 HEAD', returnStdout: true).trim()
+                    env.IMAGE_TAG = "${safeBranch}-${commitId}"
+                    env.IMAGE_REF = "localhost:5001/museum-archive:${env.IMAGE_TAG}"
+                }
+                sh '''
+                    docker build -t "$IMAGE_REF" .
+                '''
             }
+        }
 
+        stage("Publish image") {
             steps {
                 sh '''
-                    IMAGE_TAG="$(git rev-parse --short=12 HEAD)"
-                    docker build -t "museum-archive:$IMAGE_TAG" .
+                    docker push "$IMAGE_REF"
                 '''
             }
         }
@@ -101,7 +109,6 @@ pipeline {
 
             steps {
                 sh '''
-                    export IMAGE_TAG="$(git rev-parse --short=12 HEAD)"
                     bash scripts/deploy-container.sh
                 '''
             }
@@ -127,7 +134,6 @@ pipeline {
 
                     echo "Сайт не запустился"
                     export DEPLOY_ROOT="$HOME/museum-deploy"
-                    export IMAGE_TAG="$(git rev-parse --short=12 HEAD)"
                     export HOST_UID="$(id -u)"
                     export HOST_GID="$(id -g)"
                     docker compose -f "$HOME/museum-deploy/container/compose.yaml" logs --tail=100 || true

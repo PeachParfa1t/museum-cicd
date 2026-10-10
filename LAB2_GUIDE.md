@@ -5,7 +5,7 @@
 - Приложение Flask и Waitress запускается в контейнере `app` на внутреннем порту 8000.
 - Контейнер `nginx` принимает запросы на `127.0.0.1:8081` и передаёт их приложению.
 - База SQLite остаётся в `~/museum-deploy/shared/museum.db` из первой лабораторной. При обновлении образа она не удаляется.
-- Существующий Jenkins Multibranch Pipeline получает новый `Jenkinsfile` из GitHub. Для `dev` и `feature/*` проходят тесты и сборка архива. Для `main` дополнительно собирается образ, запускаются контейнеры и проверяется сайт.
+- Jenkins Multibranch Pipeline собирает и публикует Docker-образ в registry для каждой ветки. Только для `main` он запускает контейнеры и проверяет сайт. Порядок включения registry и обновления существующего проекта описан в [REGISTRY_GUIDE.md](REGISTRY_GUIDE.md).
 
 Это две службы в одной контейнерной сети. Бизнес-логика музея по-прежнему находится в одном Flask-приложении; отдельные микросервисы для экспонатов, залов и других сущностей в этой лабораторной не выделяются.
 
@@ -32,39 +32,9 @@
    docker system df
    ```
 
-## Как ввести изменения через три ветки
+## Как обновить существующий проект через три ветки
 
-Эти файлы добавляются к тому же репозиторию `PeachParfa1t/museum-cicd`. Скачайте архив изменений `museum_lab2_changes.zip` и распакуйте его в корень локального репозитория. Выполните команды из каталога проекта, заменив путь к архиву, если он сохранён не в `Downloads`:
-
-```bash
-git switch main
-git pull --ff-only origin main
-git switch -c feature/lab2-containers
-unzip -o "$HOME/Downloads/museum_lab2_changes.zip" -d .
-git add .dockerignore Dockerfile compose.yaml nginx/default.conf scripts/deploy-container.sh Jenkinsfile README.md LAB2_GUIDE.md
-git commit -m "ЛР2: контейнеры приложения и nginx"
-git push -u origin feature/lab2-containers
-```
-
-Изменения в `feature/lab2-containers` и затем в `dev` должны пройти тесты без деплоя. Для переноса изменений:
-
-```bash
-git switch dev
-git pull --ff-only origin dev
-git merge feature/lab2-containers
-git push origin dev
-```
-
-Убедиться, что сборка `dev` зелёная, а этапы `Build container`, `Deploy` и `Health check` пропущены. Затем:
-
-```bash
-git switch main
-git pull --ff-only origin main
-git merge dev
-git push origin main
-```
-
-Push в `main` запускает новую сборку автоматически через webhook. Jenkins берёт `Jenkinsfile` именно из отправленного коммита. В интерфейсе самой задачи менять сценарий Pipeline вручную не нужно.
+Проект уже содержит контейнеры из первоначального варианта ЛР2. Точные команды для добавления registry, сборки Docker-образов во всех трёх ветках и переноса изменений из feature через `dev` в `main` находятся в [REGISTRY_GUIDE.md](REGISTRY_GUIDE.md). В `dev` должны пройти `Build container` и `Publish image`, а `Deploy` и `Health check` должны быть пропущены. Push в `main` запускает деплой автоматически через прежний webhook.
 
 ## Деплой и проверка
 
@@ -101,10 +71,11 @@ docker compose -f "$DEPLOY_ROOT/container/compose.yaml" stop
 
 1. Три ветки `main`, `dev`, `feature/lab2-containers` на GitHub.
 2. Успешные сборки `feature/lab2-containers` и `dev` с пропущенным деплоем.
-3. Успешная сборка `main` с этапами `Build container`, `Deploy` и `Health check`.
-4. Вывод `docker compose ... ps` с двумя работающими контейнерами.
-5. Ответ `curl -i http://127.0.0.1:8081/health` и страница сайта.
-6. Файл `nginx/default.conf` и файл базы вне контейнера.
+3. Успешная сборка `main` с этапами `Build container`, `Publish image`, `Deploy` и `Health check`.
+4. Список тегов в локальном registry: `curl http://127.0.0.1:5001/v2/museum-archive/tags/list`.
+5. Вывод `docker compose ... ps` с двумя работающими контейнерами.
+6. Ответ `curl -i http://127.0.0.1:8081/health` и страница сайта.
+7. Файл `nginx/default.conf` и файл базы вне контейнера.
 
 ## Если что-то не запустилось
 
