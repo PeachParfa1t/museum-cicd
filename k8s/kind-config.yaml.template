@@ -1,0 +1,17 @@
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+containerdConfigPatches:
+  - |-
+    [plugins."io.containerd.grpc.v1.cri".registry]
+      config_path = "/etc/containerd/certs.d"
+nodes:
+  - role: control-plane
+    extraPortMappings:
+      - containerPort: 30081
+        hostPort: 8081
+        listenAddress: "127.0.0.1"
+    extraMounts:
+      - hostPath: "__DEPLOY_ROOT__/shared"
+        containerPath: /museum-data/core
+      - hostPath: "__DEPLOY_ROOT__/users"
+        containerPath: /museum-data/users

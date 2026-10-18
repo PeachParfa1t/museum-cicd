@@ -1,0 +1,59 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: museum-core-init-__IMAGE_TAG__
+  namespace: museum
+spec:
+  ttlSecondsAfterFinished: 3600
+  backoffLimit: 3
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: init
+          image: localhost:5001/museum-core:__IMAGE_TAG__
+          imagePullPolicy: Always
+          command:
+            - python
+            - -c
+            - "from pathlib import Path; from app import create_app; create_app({'SEED_DATABASE': not Path('/data/museum.db').exists()})"
+          env:
+            - name: DATABASE_PATH
+              value: /data/museum.db
+          volumeMounts:
+            - name: data
+              mountPath: /data
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: museum-core-data
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: museum-users-init-__IMAGE_TAG__
+  namespace: museum
+spec:
+  ttlSecondsAfterFinished: 3600
+  backoffLimit: 3
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: init
+          image: localhost:5001/museum-users:__IMAGE_TAG__
+          imagePullPolicy: Always
+          command:
+            - python
+            - -c
+            - "from users_service import create_app; create_app()"
+          env:
+            - name: USERS_DATABASE_PATH
+              value: /data/users.db
+          volumeMounts:
+            - name: data
+              mountPath: /data
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: museum-users-data

@@ -14,6 +14,7 @@ def create_app(test_config=None):
             "DATABASE_PATH", os.path.join(app.instance_path, "museum.db")
         ),
         SEED_DATABASE=True,
+        INIT_DATABASE=os.environ.get("INIT_DATABASE", "1") == "1",
         JSON_SORT_KEYS=False,
     )
 
@@ -24,8 +25,9 @@ def create_app(test_config=None):
     db.init_app(app)
     app.register_blueprint(api_bp)
 
-    with app.app_context():
-        db.ensure_database(seed=app.config["SEED_DATABASE"])
+    if app.config["INIT_DATABASE"]:
+        with app.app_context():
+            db.ensure_database(seed=app.config["SEED_DATABASE"])
 
     @app.get("/")
     def index():

@@ -67,6 +67,20 @@ const resources = {
       { name: "phone", label: "Телефон", type: "tel" },
     ],
   },
+  users: {
+    title: "Пользователи",
+    description: "Отдельный сервис и отдельная база данных пользователей",
+    singular: "пользователя",
+    columns: [
+      { key: "full_name", label: "ФИО", subtitle: "email" },
+      { key: "phone", label: "Телефон" },
+    ],
+    fields: [
+      { name: "full_name", label: "ФИО", required: true },
+      { name: "email", label: "Электронная почта", type: "email", required: true },
+      { name: "phone", label: "Телефон", type: "tel" },
+    ],
+  },
   events: {
     title: "События",
     description: "Выставки, встречи и образовательные программы",

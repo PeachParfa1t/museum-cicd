@@ -11,3 +11,4 @@ htmlcov/
 .coverage
 test-results.xml
 build/
+.kind-config.generated.yaml

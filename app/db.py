@@ -9,7 +9,7 @@ def get_db():
     if "db" not in g:
         database_path = Path(current_app.config["DATABASE"])
         database_path.parent.mkdir(parents=True, exist_ok=True)
-        g.db = sqlite3.connect(database_path)
+        g.db = sqlite3.connect(database_path, timeout=30)
         g.db.row_factory = sqlite3.Row
         g.db.execute("PRAGMA foreign_keys = ON")
     return g.db

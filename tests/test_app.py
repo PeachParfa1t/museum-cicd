@@ -148,3 +148,7 @@ def test_statistics(client):
         "exhibits",
         "halls",
     }
+
+
+def test_users_are_not_served_by_core(client):
+    assert client.get("/api/users").status_code == 404

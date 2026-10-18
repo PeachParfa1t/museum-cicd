@@ -45,6 +45,7 @@ pipeline {
                     python3 -m venv .venv
                     .venv/bin/python -m pip install --upgrade pip
                     .venv/bin/python -m pip install -r requirements.txt
+                    .venv/bin/python -m pip install -r services/users/requirements.txt
                 '''
             }
         }
@@ -52,7 +53,7 @@ pipeline {
         stage("Tests") {
             steps {
                 sh '''
-                    .venv/bin/python -m pytest --junitxml=test-results.xml
+                    PYTHONPATH="services/users:$PYTHONPATH" .venv/bin/python -m pytest tests services/users/tests --junitxml=test-results.xml
                 '''
             }
 
@@ -67,7 +68,7 @@ pipeline {
         stage("Validate sources") {
             steps {
                 sh '''
-                    .venv/bin/python -m compileall -q app run.py wsgi.py
+                    .venv/bin/python -m compileall -q app run.py wsgi.py services/users/users_service services/users/wsgi.py
                 '''
             }
         }
@@ -80,36 +81,37 @@ pipeline {
             }
         }
 
-        stage("Build container") {
+        stage("Build images") {
             steps {
                 script {
                     def safeBranch = env.BRANCH_NAME.replaceAll('[^A-Za-z0-9_.-]', '-')
                     def commitId = sh(script: 'git rev-parse --short=12 HEAD', returnStdout: true).trim()
                     env.IMAGE_TAG = "${safeBranch}-${commitId}"
-                    env.IMAGE_REF = "localhost:5001/museum-archive:${env.IMAGE_TAG}"
                 }
                 sh '''
-                    docker build -t "$IMAGE_REF" .
+                    docker build -t "localhost:5001/museum-core:$IMAGE_TAG" .
+                    docker build -f services/users/Dockerfile -t "localhost:5001/museum-users:$IMAGE_TAG" .
                 '''
             }
         }
 
-        stage("Publish image") {
+        stage("Publish images") {
             steps {
                 sh '''
-                    docker push "$IMAGE_REF"
+                    docker push "localhost:5001/museum-core:$IMAGE_TAG"
+                    docker push "localhost:5001/museum-users:$IMAGE_TAG"
                 '''
             }
         }
 
-        stage("Deploy") {
+        stage("Deploy to Kubernetes") {
             when {
                 branch "main"
             }
 
             steps {
                 sh '''
-                    bash scripts/deploy-container.sh
+                    bash scripts/deploy-k8s.sh
                 '''
             }
         }
@@ -122,9 +124,9 @@ pipeline {
             steps {
                 sh '''
                     for attempt in $(seq 1 15); do
-                        if curl --fail --silent "$DEPLOY_URL/health"; then
-                            echo
-                            echo "Сайт успешно развёрнут"
+                        if curl --fail --silent "$DEPLOY_URL/health" > /dev/null && \
+                           curl --fail --silent "$DEPLOY_URL/users-health" > /dev/null; then
+                            echo "Оба сервиса доступны через nginx: $DEPLOY_URL"
                             exit 0
                         fi
 
@@ -132,11 +134,8 @@ pipeline {
                         sleep 2
                     done
 
-                    echo "Сайт не запустился"
-                    export DEPLOY_ROOT="$HOME/museum-deploy"
-                    export HOST_UID="$(id -u)"
-                    export HOST_GID="$(id -g)"
-                    docker compose -f "$HOME/museum-deploy/container/compose.yaml" logs --tail=100 || true
+                    echo "Сервисы Kubernetes не готовы"
+                    kubectl --context kind-museum-lab3 -n museum get pods || true
                     exit 1
                 '''
             }
